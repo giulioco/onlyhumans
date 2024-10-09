@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "OnlyHumans",
+  "version": "1.0",
+  "description": "Detect and manage AI-generated tweets on Twitter",
+  "permissions": ["activeTab", "storage"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "js": ["contentScript.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
