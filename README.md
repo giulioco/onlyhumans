@@ -48,11 +48,11 @@ To set up the development environment:
 
 1. Install dependencies:
    ```
-   npm install
+   bun install
    ```
 2. Start the development server:
    ```
-   npm run dev
+   bun run dev
    ```
 3. Make changes to the code in the `src` directory
 4. The extension will automatically rebuild when changes are detected
