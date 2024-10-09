@@ -1,6 +1,6 @@
-# OnlyHumans
+# OnlyHumans 🚫🤖💬
 
-OnlyHumans is a Chrome extension designed to detect and manage AI-generated tweets on Twitter. It uses OpenAI's GPT-4 model to analyze tweets and flag those that are likely to be AI-generated, helping users maintain a more authentic social media experience.
+OnlyHumans is a Chrome extension designed to detect and manage AI-generated tweets on Twitter. It uses OpenAI's GPT-4o model to analyze tweets and flag those that are likely to be AI-generated, helping users maintain a more authentic social media experience.
 
 ## Features
 

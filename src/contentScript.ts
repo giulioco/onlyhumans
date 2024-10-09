@@ -108,15 +108,16 @@ async function processTweets() {
                 `article[data-testid="tweet"] a[href*="/status/${result.id}"]`
               )
               ?.closest('article[data-testid="tweet"]');
+
             if (tweetElement) {
-              console.log(`Adding flag button to tweet ${result.id}`);
+              // console.log(`Adding flag button to tweet ${result.id}`);
               const actionsElement = tweetElement.querySelector(
-                ".css-175oi2r.r-18u37iz.r-1h0z5md.r-13awgt0"
+                ".css-175oi2r.r-1awozwy.r-18u37iz.r-1cmwbt1.r-1wtj0ep"
               );
               if (actionsElement) {
                 const flagButton = createFlagButton();
                 flagButton.addEventListener("click", async () => {
-                  console.log(`Flag button clicked for tweet ${result.id}`);
+                  // console.log(`Flag button clicked for tweet ${result.id}`);
                   const usernameElement = tweetElement.querySelector(
                     '[data-testid="User-Name"] a'
                   );
