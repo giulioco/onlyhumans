@@ -1,6 +1,7 @@
 import { analyzeTweets } from "./aiDetector";
 
 const processedTweets = new Set<string>();
+let flaggedTweets = new Set<string>();
 const tweetsToAnalyze: { id: string; text: string }[] = [];
 
 // Custom debounce function
@@ -62,6 +63,46 @@ async function blockUser() {
   }
 }
 
+function applyFlagToTweet(tweetElement: Element, tweetId: string) {
+  const actionsElement = tweetElement.querySelector(
+    ".css-175oi2r.r-1awozwy.r-18u37iz.r-1cmwbt1.r-1wtj0ep"
+  );
+  if (actionsElement && !actionsElement.querySelector(".ai-flag-button")) {
+    const flagButton = createFlagButton();
+    flagButton.classList.add("ai-flag-button");
+    flagButton.addEventListener("click", async () => {
+      const usernameElement = tweetElement.querySelector(
+        '[data-testid="User-Name"] a'
+      );
+      if (usernameElement) {
+        await blockUser();
+        console.log(`Blocked user for tweet ${tweetId}`);
+      }
+    });
+    actionsElement.insertBefore(flagButton, actionsElement.firstChild);
+    console.log(`Flag button added to tweet ${tweetId}`);
+    (tweetElement as HTMLElement).style.border = "2px solid red";
+    (tweetElement as HTMLElement).style.borderRadius = "8px";
+    console.log(`Applied red border to tweet ${tweetId}`);
+  }
+}
+
+async function loadFlaggedTweets() {
+  return new Promise<Set<string>>((resolve) => {
+    chrome.storage.local.get(["flaggedTweets"], (result) => {
+      if (result.flaggedTweets) {
+        resolve(new Set(result.flaggedTweets));
+      } else {
+        resolve(new Set());
+      }
+    });
+  });
+}
+
+async function saveFlaggedTweets() {
+  await chrome.storage.local.set({ flaggedTweets: Array.from(flaggedTweets) });
+}
+
 async function processTweets() {
   const tweetElements = document.querySelectorAll(
     'article[data-testid="tweet"]'
@@ -81,10 +122,18 @@ async function processTweets() {
       '[data-testid="tweetText"]'
     );
 
-    if (tweetId && tweetTextElement && !processedTweets.has(tweetId)) {
-      const tweetText = tweetTextElement.textContent || "";
-      tweetsToAnalyze.push({ id: tweetId, text: tweetText });
-      processedTweets.add(tweetId);
+    if (tweetId) {
+      if (flaggedTweets.has(tweetId)) {
+        applyFlagToTweet(tweetElement, tweetId);
+      } else if (
+        tweetTextElement &&
+        !processedTweets.has(tweetId) &&
+        !tweetElement.querySelector(".ai-flag-button")
+      ) {
+        const tweetText = tweetTextElement.textContent || "";
+        tweetsToAnalyze.push({ id: tweetId, text: tweetText });
+        processedTweets.add(tweetId);
+      }
     }
   });
 
@@ -93,10 +142,10 @@ async function processTweets() {
       if (result.apiKey) {
         const results = await analyzeTweets(tweetsToAnalyze, result.apiKey);
 
-        console.log("Analysis results:", results);
+        // console.log("Analysis results:", results);
 
         if (results.length === 0) {
-          console.log("No results from analysis");
+          // console.log("No results from analysis");
           return;
         }
 
@@ -109,43 +158,10 @@ async function processTweets() {
               )
               ?.closest('article[data-testid="tweet"]');
 
-            if (tweetElement) {
-              // console.log(`Adding flag button to tweet ${result.id}`);
-              const actionsElement = tweetElement.querySelector(
-                ".css-175oi2r.r-1awozwy.r-18u37iz.r-1cmwbt1.r-1wtj0ep"
-              );
-              if (actionsElement) {
-                const flagButton = createFlagButton();
-                flagButton.addEventListener("click", async () => {
-                  // console.log(`Flag button clicked for tweet ${result.id}`);
-                  const usernameElement = tweetElement.querySelector(
-                    '[data-testid="User-Name"] a'
-                  );
-                  if (usernameElement) {
-                    await blockUser();
-                    console.log(`Blocked user for tweet ${result.id}`);
-                  }
-                  chrome.runtime.sendMessage({
-                    action: "flagTweet",
-                    tweet: {
-                      id: result.id,
-                      text:
-                        tweetsToAnalyze.find((t) => t.id === result.id)?.text ||
-                        "",
-                    },
-                  });
-                  console.log(`Sent flag message for tweet ${result.id}`);
-
-                  (tweetElement as HTMLElement).style.border = "2px solid red";
-                  (tweetElement as HTMLElement).style.borderRadius = "8px";
-                  console.log(`Applied red border to tweet ${result.id}`);
-                });
-                actionsElement.insertBefore(
-                  flagButton,
-                  actionsElement.firstChild
-                );
-                console.log(`Flag button added to tweet ${result.id}`);
-              }
+            if (tweetElement && !flaggedTweets.has(result.id)) {
+              applyFlagToTweet(tweetElement, result.id);
+              flaggedTweets.add(result.id);
+              saveFlaggedTweets();
             }
           }
         });
@@ -160,18 +176,17 @@ async function processTweets() {
   }
 }
 
-// Run on page load and whenever the DOM changes
-// console.log("Initial call to processTweets");
-processTweets();
+// Initial setup
+(async () => {
+  flaggedTweets = await loadFlaggedTweets();
+  processTweets();
+})();
 
-// console.log("Setting up MutationObserver");
 const debouncedProcessTweets = debounce(() => {
-  // console.log("Debounced processTweets called");
   processTweets();
 }, 2000);
 
 const observer = new MutationObserver(() => {
-  // console.log("DOM changed");
   debouncedProcessTweets();
 });
 observer.observe(document.body, { childList: true, subtree: true });
